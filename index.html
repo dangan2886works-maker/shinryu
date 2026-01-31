@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>高校入試 面接練習くん</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f0f8ff; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>面接練習スタート</h2>
+        <p id="question">「本校を志望した理由を教えてください。」</p>
+        <textarea id="answer" rows="4" style="width:100%;" placeholder="ここに回答を入力..."></textarea>
+        <br><br>
+        <button onclick="analyze()">回答を送信してアドバイスをもらう</button>
+        <p id="feedback" style="margin-top:20px; color: #333; font-weight: bold;"></p>
+    </div>
+
+    <script>
+        function analyze() {
+            const answer = document.getElementById('answer').value;
+            const feedback = document.getElementById('feedback');
+            feedback.innerText = "（今はテストモードです）AI「" + answer + "」について、素晴らしい受け答えですね！";
+        }
+    </script>
+</body>
+</html>
