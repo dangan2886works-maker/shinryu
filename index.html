@@ -2,28 +2,120 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>高校入試 面接練習くん</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f0f8ff; }
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f7f9; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 600px; margin: 20px auto; }
+        h1 { color: #007bff; font-size: 1.5rem; }
+        #question-box { background: #e9ecef; padding: 20px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; font-size: 1.2rem; }
+        textarea { width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; resize: none; }
+        .controls { margin-top: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        button { border: none; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-mic { background-color: #dc3545; color: white; }
+        .btn-mic.recording { background-color: #ffc107; animation: pulse 1.5s infinite; }
+        .btn-send { background-color: #28a745; color: white; }
+        #status { font-size: 0.9rem; color: #666; margin-top: 10px; height: 20px; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <h2>面接練習スタート</h2>
-        <p id="question">「本校を志望した理由を教えてください。」</p>
-        <textarea id="answer" rows="4" style="width:100%;" placeholder="ここに回答を入力..."></textarea>
-        <br><br>
-        <button onclick="analyze()">回答を送信してアドバイスをもらう</button>
-        <p id="feedback" style="margin-top:20px; color: #333; font-weight: bold;"></p>
+        <h1>高校入試 面接練習</h1>
+        <div id="question-box">「本校を志望した理由を教えてください。」</div>
+        
+        <p style="text-align:left; font-size:0.8rem; margin-bottom:5px;">回答（キーボード入力も、声での入力もOK）：</p>
+        <textarea id="answer-text" rows="6" placeholder="ここに入力するか、マイクボタンを押して話してください..."></textarea>
+        
+        <div id="status"></div>
+
+        <div class="controls">
+            <button id="mic-btn" class="btn-mic" onclick="toggleSpeech()">🎤 声で答える</button>
+            <button class="btn-send" onclick="sendAnswer()">アドバイスをもらう</button>
+        </div>
+
+        <div id="feedback-area" style="margin-top:30px; text-align: left; display: none;">
+            <hr>
+            <h3 style="color: #007bff;">AIのアドバイス:</h3>
+            <p id="feedback-text"></p>
+        </div>
     </div>
 
     <script>
-        function analyze() {
-            const answer = document.getElementById('answer').value;
-            const feedback = document.getElementById('feedback');
-            feedback.innerText = "（今はテストモードです）AI「" + answer + "」について、素晴らしい受け答えですね！";
+        // 音声認識の設定
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isRecording = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+            recognition.interimResults = true; // 途中の経過も表示
+            recognition.continuous = true;    // 長く話せるように設定
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (finalTranscript) {
+                    document.getElementById('answer-text').value += finalTranscript;
+                }
+                document.getElementById('status').innerText = "聞き取り中...";
+            };
+
+            recognition.onerror = (event) => {
+                console.error(event.error);
+                document.getElementById('status').innerText = "エラーが発生しました。";
+                stopRecording();
+            };
+        }
+
+        function toggleSpeech() {
+            if (!recognition) {
+                alert("お使いのブラウザは音声認識に対応していません。Google Chromeなどをお試しください。");
+                return;
+            }
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            recognition.start();
+            isRecording = true;
+            const btn = document.getElementById('mic-btn');
+            btn.innerText = "🛑 終了する";
+            btn.classList.add('recording');
+            document.getElementById('status').innerText = "マイクに向かって話してください...";
+        }
+
+        function stopRecording() {
+            recognition.stop();
+            isRecording = false;
+            const btn = document.getElementById('mic-btn');
+            btn.innerText = "🎤 声で答える";
+            btn.classList.remove('recording');
+            document.getElementById('status').innerText = "聞き取りを終了しました。";
+        }
+
+        function sendAnswer() {
+            const text = document.getElementById('answer-text').value;
+            if (!text) {
+                alert("回答が空欄です。入力してから送信してください。");
+                return;
+            }
+            
+            // フィードバック表示（今はシミュレーション）
+            const area = document.getElementById('feedback-area');
+            const feedback = document.getElementById('feedback-text');
+            area.style.display = "block";
+            feedback.innerText = "（テストモード）あなたの回答「" + text + "」を受け取りました！中学生らしい素直な表現で良いですね。次はもう少し『具体的なエピソード』を付け加えるとさらに良くなりますよ！";
         }
     </script>
 </body>
